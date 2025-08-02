@@ -14,7 +14,7 @@ buildNpmPackage rec {
   pname = "fluent-reader";
   version = "1.1.4";
   src = ../.;
-  npmDepsHash = "sha256-cOtGJtex6dZUFqpKrukCs4A0A1UV4eZGMSDKyXEDvAE=";
+  npmDepsHash = "sha256-RfofIgU7cKbv4dKSZljVD5jzrymW4gxEYuJ/qTSeK4A=";
   makeCacheWritable = true;
   # src = fetchFromGitHub {
   #   owner = "yang991178";
@@ -41,10 +41,12 @@ buildNpmPackage rec {
     runHook preBuild
 
     npm run build
-    npm exec electron-builder -- \
-      --dir \
-      -c.electronDist=${myElectron.dist} \
-      -c.electronVersion=${myElectron.version}
+    npm exec electron-builder \
+      --linux \
+      --x64
+      # -p never \
+      # -c.electronDist=${myElectron.dist} \
+      # -c.electronVersion=${myElectron.version}
 
     runHook postBuild
   '';
@@ -52,9 +54,13 @@ buildNpmPackage rec {
 
   installPhase = ''
     runHook preInstall
+    
+    mkdir -p $out/share
+    mkdir -p $out/bin
+    cp -r bin/linux/x64/linux-unpacked/resources $out/share/
 
-    makeWrapper '${myElectron}/bin/electron' "$out/dist/electron.js" \
-      # --add-flags "$out/share/appium-inspector/resources/app.asar" \
+    makeWrapper '${myElectron}/bin/electron' $out/bin/${pname} \
+      --add-flags "$out/share/resources/app.asar"
       # --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}" \
       # --set NODE_ENV production
 
