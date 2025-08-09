@@ -11,7 +11,7 @@ let
 in
 
 buildNpmPackage rec {
-  pname = "fluent-reader";
+  pname = "fluent-fire-reader";
   version = "1.1.4";
   src = ../.;
   npmDepsHash = "sha256-RfofIgU7cKbv4dKSZljVD5jzrymW4gxEYuJ/qTSeK4A=";
@@ -26,7 +26,7 @@ buildNpmPackage rec {
   # npmDepsHash = "sha256-okonmZMhsftTtmg4vAK1n48IiG+cUG9AM5GI6wF0SnM=";
   
   env = {
-    ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
+    ELECTRON_SKIP_BINARY_DOWNLOAD = 1;
   };
  
   npmPackFlags = [ "--ignore-scripts" ];
@@ -40,13 +40,13 @@ buildNpmPackage rec {
   buildPhase = ''
     runHook preBuild
 
+    # export ELECTRON_BUILDER_CACHE=$PWD/nix/electron_builder_cache
     npm run build
-    npm exec electron-builder \
-      --linux \
-      --x64
-      # -p never \
-      # -c.electronDist=${myElectron.dist} \
-      # -c.electronVersion=${myElectron.version}
+    npm exec -- electron-builder build \
+      --publish=never \
+      --dir \
+      -c.electronDist=${myElectron.dist} \
+      -c.electronVersion=${myElectron.version}
 
     runHook postBuild
   '';
@@ -55,12 +55,13 @@ buildNpmPackage rec {
   installPhase = ''
     runHook preInstall
     
-    mkdir -p $out/share
+    mkdir -p $out/share/${pname}
     mkdir -p $out/bin
-    cp -r bin/linux/x64/linux-unpacked/resources $out/share/
+    cp -Pr --no-preserve=ownership bin/*/*/*-unpacked/{locales,resources{,.pak}} $out/share/${pname}/
 
     makeWrapper '${myElectron}/bin/electron' $out/bin/${pname} \
-      --add-flags "$out/share/resources/app.asar"
+        --add-flags "$out/share/${pname}/resources/app.asar" \
+        --set-default ELECTRON_FORCE_IS_PACKAGED 1
       # --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}" \
       # --set NODE_ENV production
 
